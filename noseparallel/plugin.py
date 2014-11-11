@@ -14,11 +14,11 @@ class ParallelPlugin(Plugin):
 
     def wantMethod(self, method):
         if not method.__name__.lower().startswith("test"):
-            return None
+            return False
         try:
             cls = method.im_class
             if not cls.__name__.lower().startswith("test"):
-                return None
+                return False
             return self._pick_by_hash("%s.%s" % (cls.__name__, method.__name__))
         except AttributeError:
             return None
@@ -27,5 +27,5 @@ class ParallelPlugin(Plugin):
     def _pick_by_hash(self, name):
         class_numeric_id = abs(hash(name))
         if class_numeric_id % self.total_nodes == self.node_index:
-            return None
+            return True
         return False
