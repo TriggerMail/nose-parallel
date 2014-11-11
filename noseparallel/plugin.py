@@ -1,11 +1,8 @@
 import os
-import hashlib
 import logging
-
 from nose.plugins.base import Plugin
 
 log = logging.getLogger('nose.plugin.parallel')
-
 
 class ParallelPlugin(Plugin):
     name = 'parallel'
@@ -18,22 +15,14 @@ class ParallelPlugin(Plugin):
     def wantMethod(self, method):
         try:
             cls = method.im_class
-            return self._pick_by_name(cls.__name__)
+            return self._pick_by_hash("%s.%s" % (cls.__name__, method.__name__))
         except AttributeError:
             return None
         return None
 
-    def wantFunction(self, function):
-        try:
-            return self._pick_by_name(function.__name__)
-        except AttributeError:
-            return None
-        return None
-
-    def _pick_by_name(self, name):
-        m = hashlib.md5()
-        m.update(name)
-        class_numeric_id = int(m.hexdigest(), 16)
+    def _pick_by_hash(self, name):
+        print name
+        class_numeric_id = abs(hash(name))
         if class_numeric_id % self.total_nodes == self.node_index:
             return None
         return False
