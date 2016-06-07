@@ -1,6 +1,7 @@
-import os
-import logging
 from nose.plugins.base import Plugin
+from operator import itemgetter
+import logging
+import os
 
 log = logging.getLogger('nose.plugin.parallel')
 
@@ -25,7 +26,9 @@ class ParallelPlugin(Plugin):
         return None
 
     def _pick_by_hash(self, name):
-        class_numeric_id = abs(hash(name))
-        if class_numeric_id % self.total_nodes == self.node_index:
+        node_loads = [int(os.environ.get("NODE_LOAD_%d" % i)) or 0 for i in xrange(self.total_nodes)]
+        min_load_index = min(enumerate(node_loads), key=itemgetter(1))[0]
+        os.environ['NODE_LOAD_%d' % min_load_index] = str(int(os.environ.get("NODE_LOAD_%d" % i)) + 1)
+        if min_load_index == self.node_index:
             return True
         return False
