@@ -30,7 +30,7 @@ class ParallelPlugin(Plugin):
     def _pick_by_hash(self, name):
         # Distribute the load evenly. Every node gets the same
         #   number of tests.
-        node_loads = [(int(os.environ.get("NODE_LOAD_%d" % i)) or 0) for i in xrange(self.total_nodes)]
+        node_loads = [int(os.environ.get("NODE_LOAD_%d" % i)) or 0 for i in xrange(self.total_nodes)]
         min_load_index = min(enumerate(node_loads), key=itemgetter(1))[0]
         os.environ['NODE_LOAD_%d' % min_load_index] = str(node_loads[min_load_index] + 1)
         if min_load_index == self.node_index:
