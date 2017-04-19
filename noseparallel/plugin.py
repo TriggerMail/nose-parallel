@@ -1,31 +1,52 @@
 import os
+import hashlib
 import logging
+
 from nose.plugins.base import Plugin
 
 log = logging.getLogger('nose.plugin.parallel')
+
 
 class ParallelPlugin(Plugin):
     name = 'parallel'
 
     def configure(self, options, config):
         super(ParallelPlugin, self).configure(options, config)
+        self.salt = options.parallel_salt or os.environ.get(options.parallel_salt_env, '')
         self.total_nodes = int(os.environ.get('CIRCLE_NODE_TOTAL') or os.environ.get('NODE_TOTAL', 1))
         self.node_index = int(os.environ.get('CIRCLE_NODE_INDEX') or os.environ.get('NODE_INDEX', 0))
+        print 'total = %d' % self.total_nodes
+        print 'index = %d' % self.node_index
 
     def wantMethod(self, method):
-        if not method.__name__.lower().startswith("test"):
-            return False
+        print 'wantMethod'
+        print 'method name = %s' % method.__name__
         try:
-            cls = method.im_class
-            if not cls.__name__.lower().startswith("test"):
-                return False
-            return self._pick_by_hash("%s.%s" % (cls.__name__, method.__name__))
+            return self._pick_by_name(method.__name__)
         except AttributeError:
             return None
         return None
 
-    def _pick_by_hash(self, name):
-        class_numeric_id = abs(hash(name))
+    def wantFunction(self, function):
+        print 'wantFunction'
+        print 'function name = %s' % function.__name__
+        try:
+            return self._pick_by_name(function.__name__)
+        except AttributeError:
+            return None
+        return None
+
+    def _pick_by_name(self, name):
+        m = hashlib.md5(self.salt.encode('utf-8'))
+        m.update(name.encode('utf-8'))
+        class_numeric_id = int(m.hexdigest(), 16)
         if class_numeric_id % self.total_nodes == self.node_index:
-            return True
+            print 'Yes!'
+            return None
+        print 'No!'
         return False
+
+    def options(self, parser, env=os.environ):
+        parser.add_option("--parallel-salt")
+        parser.add_option("--parallel-salt-env", default="NOSE_PARALLEL_SALT")
+        super(ParallelPlugin, self).options(parser, env=env)
